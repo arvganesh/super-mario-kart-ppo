@@ -1,3 +1,3 @@
 # kart-agents
 
-Baselines for Mario Kart. 
+Baselines for Mario Kart (WIP)
