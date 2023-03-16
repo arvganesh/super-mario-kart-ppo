@@ -13,7 +13,7 @@ def main():
     print(INTEGRATION_NAME in retro.data.list_games(inttype=retro.data.Integrations.ALL)) # Should print 'True' if integration suceeded.
 
     # Create environment
-    env = retro.make(INTEGRATION_NAME, inttype=retro.data.Integrations.ALL) # "MarioKart-Snes" should match the name of the folder in integrations/
+    env = retro.make(INTEGRATION_NAME, inttype=retro.data.Integrations.ALL) # INTEGRATION_NAME should match a folder name within NEW_INTEGRATIONS_DIR
     observation, info = env.reset()
 
     for _ in range(1000):
