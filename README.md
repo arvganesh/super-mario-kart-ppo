@@ -11,6 +11,10 @@ This repo shows an example integration of Super Mario Kart on the SNES.
   * [Files in this repo](#files-in-this-repo)
   * [Integrating new games](#integrating-new-games)
 * [Environment Design](#environment-design)
+  * [Start State](#start-state)
+  * [Action Space](#action-space)
+  * [Observation Space](#observation-space)
+  * [Reward Function, Done Condition, Time Penalty](#reward-function-done-condition-time-penalty)
 
 ## Setup and Overview
 
@@ -75,7 +79,7 @@ Here is the observation space for SNES games. In words, a `244x256x3` tensor wit
 Box(0, 255, (224, 256, 3), uint8)
 ```
 
-### Reward Function and Done Condition
+### Reward Function, Done Condition, Time Penalty
 `data.json` contains locations of important variables. [See this](https://retro.readthedocs.io/en/latest/integration.html#variable-locations-data-json).
 ```json
 {
