@@ -38,7 +38,7 @@ A high-level explanation of all the files in this repo:
   - `metadata.json` – Specifies which `.state` file corresponds to the start state.
   - `rom.sfc` – ROM file for Mario Kart SNES (must be named `rom`)
   - `rom.sha` – SHA1 checksum for ROM file. Used to identify the ROM. (must be named `rom`). Used [this](https://emn178.github.io/online-tools/sha1_checksum.html) to create it.
-- `sample_integration.py`: Shows how to integrate new roms into stable-retro without modifying the stable-retro pacakge.
+- `example_integration.py`: Shows how to integrate new roms into stable-retro without modifying the stable-retro pacakge.
 
 More detailed explanations of the files inside `Integrations/MarioKart-Snes` can be found [here](https://retro.readthedocs.io/en/latest/integration.html#game-integration).
 
