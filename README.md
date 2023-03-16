@@ -54,7 +54,7 @@ From my experience, the most time-consuming part of integration is finding RAM l
 
 ## Environment Design
 ### Start State
-`Level1.state` stores the default state in which episodes begin. 
+`Level1.state` stores the default state in which episodes begin. The name of this file can be pretty much anything as long as it's specified in `metadata.json`.
 
 I used the [Gym Integration UI](https://github.com/openai/retro/releases/tag/f347d7e) to create the start state file. It may also be possible to use other emulators to do this, but I haven't tried.
 
