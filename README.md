@@ -49,11 +49,11 @@ More detailed explanations of the files inside `Integrations/MarioKart-Snes` can
 
 *IMPORTANT: stable-retro already [contains many integrations](https://github.com/arvganesh/stable-retro/tree/master/retro/data/stable/) for games. To use them, you just need to [import the ROMs](https://retro.readthedocs.io/en/latest/getting_started.html?highlight=retro.import#importing-roms).*
 
+Integration in this context means finding RAM locations of important variables using them to define the reward function and 'done' condition as given by the environment.
+
 To integrate new ROMs, you can use the [Gym Integration UI](https://github.com/openai/retro/releases/tag/f347d7e). However, the application is fairly buggy on my Mac, so I had to do most things it's supposed to do by hand. The one exception to this was creating the file `Level1.state`.
 
-To create `rom.sha`, I had to upload `rom.sfc` to [this](https://emn178.github.io/online-tools/sha1_checksum.html) and paste the result.
-
-Integration in this context means finding RAM locations of important variables using them to define the reward function and 'done' condition as given by the environment.
+Note: To create `rom.sha`, I had to upload `rom.sfc` to [this](https://emn178.github.io/online-tools/sha1_checksum.html) and paste the result.
 
 From my experience, the most time-consuming part of integration is finding RAM locations of important variables. However, many popular games already have their RAMs "mapped" out. [Here](https://datacrystal.romhacking.net/wiki/Super_Mario_Kart:RAM_map) is an example mapping for Super Mario Kart which saved me a lot of time. Pay close attention to signed vs. unsigned, the width of the variable in bytes, and endianness. For the SNES, [16-bit and 24-bit values are stored in little-endian](https://ersanio.gitbook.io/assembly-for-the-snes/the-fundamentals/endian), but this probably varies depending on the game console. This [blog post](https://www.videogames.ai/2019/01/29/Setup-OpenAI-baselines-retro.html) also has some helpful information and tutorials on integration.
 
