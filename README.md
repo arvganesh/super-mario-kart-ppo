@@ -1,4 +1,4 @@
-# kart-agents
+# Fully Explained Retro Integration
 
 This repo describes how integrate new ROMs into [stable-retro](https://github.com/MatPoliquin/stable-retro) + other setup guidelines.
 
