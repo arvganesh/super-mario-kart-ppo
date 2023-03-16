@@ -37,7 +37,8 @@ A high-level explanation of all the files in this repo:
   - `scenario.json` – Describes reward function and 'done' condition.
   - `metadata.json` – Specifies which `.state` file corresponds to the start state.
   - `rom.sfc` – ROM file for Mario Kart SNES (must be named `rom`)
-  - `rom.sha` – SHA1 checksum for ROM file. Used to identify the ROM. (must be named `rom`). Used [this](https://emn178.github.io/online-tools/sha1_checksum.html) to create it.
+  - `rom.sha` – SHA1 checksum for ROM file. Used to identify the ROM. (must be named `rom`).
+  
 - `example_integration.py`: Shows how to integrate new roms into stable-retro without modifying the stable-retro pacakge.
 
 More detailed explanations of the files inside `Integrations/MarioKart-Snes` can be found [here](https://retro.readthedocs.io/en/latest/integration.html#game-integration).
@@ -47,6 +48,8 @@ More detailed explanations of the files inside `Integrations/MarioKart-Snes` can
 *IMPORTANT: [Must read if you want to integrate new ROMs.](https://retro.readthedocs.io/en/latest/integration.html#game-integration)*
 
 To integrate new ROMs, you can use the [Gym Integration UI](https://github.com/openai/retro/releases/tag/f347d7e). However, the application is fairly buggy on my Mac, so I had to do most things it's supposed to do by hand. The one exception to this was creating the file `Level1.state`.
+
+To create `rom.sha`, I had to upload `rom.sfc` to [this](https://emn178.github.io/online-tools/sha1_checksum.html) and paste the result.
 
 Integration in this context means finding RAM locations of important variables using them to define the reward function and 'done' condition as given by the environment.
 
