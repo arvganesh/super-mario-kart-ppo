@@ -2,7 +2,7 @@
 
 This repo describes how integrate new ROMs into [stable-retro](https://github.com/MatPoliquin/stable-retro) + other setup guidelines.
 
-This repo shows an example integration of Super Mario Kart on the SNES.
+An example integration of Super Mario Kart on the SNES.
 
 ## Table of Contents
 
