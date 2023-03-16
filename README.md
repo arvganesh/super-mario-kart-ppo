@@ -4,6 +4,8 @@ This repo describes how integrate new ROMs into [stable-retro](https://github.co
 
 An example integration of Super Mario Kart on the SNES.
 
+This guide is essentially a distilled version of [this](https://retro.readthedocs.io/en/latest/integration.html#).
+
 ## Table of Contents
 
 * [Setup and Overview](#setup-and-overview)
