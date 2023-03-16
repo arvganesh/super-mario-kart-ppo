@@ -1,4 +1,4 @@
-# Fully Explained Retro Integration
+# A full walkthrough of integration new ROMs into stable-retro for RL
 
 This repo describes how integrate new ROMs into [stable-retro](https://github.com/MatPoliquin/stable-retro) + other setup guidelines.
 
