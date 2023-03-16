@@ -68,7 +68,7 @@ I've specified it to be the start of a race on Time Trials mode playing as Mario
 <img width="256" alt="image" src="https://user-images.githubusercontent.com/21336191/225757384-95724610-adbc-461e-9cbb-19b99ba7e7a4.png">
 
 ### Action Space
-Here is the action space for SNES games, corresponding to the 12 buttons on the controller. More on [MultiBinary](https://gymnasium.farama.org/api/spaces/fundamental/#gymnasium.spaces.MultiBinary).
+Here is the action space for SNES games, corresponding to the 12 buttons on the controller. This is defined by `stable-retro`. More on [MultiBinary](https://gymnasium.farama.org/api/spaces/fundamental/#gymnasium.spaces.MultiBinary).
 ```python
 >>> print(env.action_space)
 MultiBinary(12)
@@ -78,7 +78,7 @@ MultiBinary(12)
 "buttons": ["B", "Y", "SELECT", "START", "UP", "DOWN", "LEFT", "RIGHT", "A", "X", "L", "R"]
 ```
 ### Observation Space
-Here is the observation space for SNES games. In words, a `244x256x3` tensor with values in the range `[0, 255]` of type `uint8`. Basically, just the raw pixels.
+Here is the observation space for SNES games. In words, a `244x256x3` tensor with values in the range `[0, 255]` of type `uint8`. Basically, just the raw pixels. This is defined by `stable-retro`.
 ```python
 >>> print(env.observation_space)
 Box(0, 255, (224, 256, 3), uint8)
