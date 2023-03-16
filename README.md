@@ -47,7 +47,7 @@ More detailed explanations of the files inside `Integrations/MarioKart-Snes` can
 
 *IMPORTANT: [Must read if you want to integrate new ROMs](https://retro.readthedocs.io/en/latest/integration.html#game-integration).*
 
-*IMPORTANT: stable-retro already [contains many integrations](https://github.com/arvganesh/stable-retro/tree/master/retro/data/stable/) for games, you will just need to [import the ROMs](https://retro.readthedocs.io/en/latest/getting_started.html?highlight=retro.import#importing-roms).*
+*IMPORTANT: stable-retro already [contains many integrations](https://github.com/arvganesh/stable-retro/tree/master/retro/data/stable/) for games. To use them, you just need to [import the ROMs](https://retro.readthedocs.io/en/latest/getting_started.html?highlight=retro.import#importing-roms).*
 
 To integrate new ROMs, you can use the [Gym Integration UI](https://github.com/openai/retro/releases/tag/f347d7e). However, the application is fairly buggy on my Mac, so I had to do most things it's supposed to do by hand. The one exception to this was creating the file `Level1.state`.
 
