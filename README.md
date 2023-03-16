@@ -1,6 +1,6 @@
 # Integrating new ROMs into stable-retro for RL
 
-This repo describes how integrate new ROMs into [stable-retro](https://github.com/MatPoliquin/stable-retro) + other setup guidelines.
+This repo describes how to integrate new ROMs into [stable-retro](https://github.com/MatPoliquin/stable-retro) + other setup guidelines.
 
 An example integration of Super Mario Kart on the SNES.
 
