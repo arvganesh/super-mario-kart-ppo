@@ -18,7 +18,6 @@ def main():
 
     for _ in range(1000):
         action = env.action_space.sample() # Random Agent
-        import pdb; pdb.set_trace()
         observation, reward, terminated, truncated, info = env.step(action)
 
         if terminated or truncated:
