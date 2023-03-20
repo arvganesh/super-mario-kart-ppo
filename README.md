@@ -68,14 +68,27 @@ I've specified it to be the start of a race on Time Trials mode playing as Mario
 <img width="256" alt="image" src="https://user-images.githubusercontent.com/21336191/225757384-95724610-adbc-461e-9cbb-19b99ba7e7a4.png">
 
 ### Action Space
-Here is the action space for SNES games, corresponding to the 12 buttons on the controller. This is defined by `stable-retro`. More on [MultiBinary](https://gymnasium.farama.org/api/spaces/fundamental/#gymnasium.spaces.MultiBinary).
-```python
->>> print(env.action_space)
-MultiBinary(12)
-```
-[Emulator Definition](https://github.com/MatPoliquin/stable-retro/blob/master/cores/snes.json):
+Here are the 12 buttons on the SNES controller.
+
 ```json
 "buttons": ["B", "Y", "SELECT", "START", "UP", "DOWN", "LEFT", "RIGHT", "A", "X", "L", "R"]
+```
+
+There are [4 primary ways](https://retro.readthedocs.io/en/latest/python.html#retro.Actions) that these actions can be represented as action spaces.
+
+*Note: Be sure to specify the type of action space you want when calling `retro.make()`.*
+
+I will be using `retro.Actions.DISCRETE`, where we break down our possible action space into a set of discrete combinations. There are $2^{12}$ possible buttom combinations, but many combinations are invalid. For example, it doesn't make sense to press `UP` and `DOWN` at the same time. Additionaly, `SELECT` and `START` are removed as those two buttons are used to navigate game menus. To remove these invalid combinations, the buttons on the controller were broken down into 4 groups, with possible button combinations defined for each group. The total number of combinations is $3 * 3 * 13 * 4 = 468$.
+
+Here are the button groups defined by `stable-retro`. They are located [here](https://github.com/MatPoliquin/stable-retro/blob/90fa6f8d46416a0151d90e26296468d2f627740e/cores/snes.json#L9).
+
+```json
+"actions": [
+    [[], ["UP"], ["DOWN"]],
+    [[], ["LEFT"], ["RIGHT"]],
+    [[], ["A"], ["B"], ["X"], ["Y"], ["A", "B"], ["B", "Y"], ["Y", "X"], ["X", "A"], ["A", "B", "Y"], ["B", "Y", "X"], ["Y", "X", "A"], ["A", "B", "Y", "X"]],
+    [[], ["L"], ["R"], ["L", "R"]]
+]
 ```
 ### Observation Space
 Here is the observation space for SNES games. In words, a `244x256x3` tensor with values in the range `[0, 255]` of type `uint8`. Basically, just the raw pixels. This is defined by `stable-retro`.
@@ -83,6 +96,8 @@ Here is the observation space for SNES games. In words, a `244x256x3` tensor wit
 >>> print(env.observation_space)
 Box(0, 255, (224, 256, 3), uint8)
 ```
+
+However, using [wrappers](https://gymnasium.farama.org/api/wrappers/), these observations can be modified to be normalized, grayscaled, and resized.
 
 ### Reward Function, Done Condition, Time Penalty
 `data.json` contains locations of important variables. [See this](https://retro.readthedocs.io/en/latest/integration.html#variable-locations-data-json).
