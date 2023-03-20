@@ -97,7 +97,7 @@ Here is the observation space for SNES games. In words, a `244x256x3` tensor wit
 Box(0, 255, (224, 256, 3), uint8)
 ```
 
-However, using [wrappers](https://gymnasium.farama.org/api/wrappers/), these observations can be modified to be normalized, grayscaled, and resized.
+However, using [wrappers](https://gymnasium.farama.org/api/wrappers/observation_wrappers/), these observations can be modified to be normalized, grayscaled, and resized.
 
 ### Reward Function, Done Condition, Time Penalty
 `data.json` contains locations of important variables. [See this](https://retro.readthedocs.io/en/latest/integration.html#variable-locations-data-json).
