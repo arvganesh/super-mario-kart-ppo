@@ -81,7 +81,7 @@ There are [4 primary ways](https://retro.readthedocs.io/en/latest/python.html#re
 I will be using `retro.Actions.DISCRETE`, where we break down our possible action space into a set of discrete combinations. There are $2^{12}$ possible buttom combinations, but many combinations are invalid. For example, it doesn't make sense to press `UP` and `DOWN` at the same time. Additionaly, `SELECT` and `START` are removed as those two buttons are used to navigate game menus. To remove these invalid combinations, the buttons on the controller were broken down into 4 groups, with possible button combinations defined for each group. The total number of combinations is $3 * 3 * 13 * 4 = 468$.
 
 ```python
->>> env.action_space
+>>> print(env.action_space)
 Discrete(468)
 ```
 
