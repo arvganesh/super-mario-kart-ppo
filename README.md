@@ -68,7 +68,7 @@ I've specified it to be the start of a race on Time Trials mode playing as Mario
 <img width="256" alt="image" src="https://user-images.githubusercontent.com/21336191/225757384-95724610-adbc-461e-9cbb-19b99ba7e7a4.png">
 
 ### Action Space
-Here are the 12 buttons on the SNES controller.
+There are 12 buttons on the SNES controller.
 
 ```json
 "buttons": ["B", "Y", "SELECT", "START", "UP", "DOWN", "LEFT", "RIGHT", "A", "X", "L", "R"]
