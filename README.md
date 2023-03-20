@@ -35,7 +35,7 @@ A high-level explanation of all the files in this repo:
   - `Level1.state` – Save state from ROM, the point in the game where training episodes begin.
   - `data.json` – Locations of important variables in emulator RAM, used for reward function and done condition.
   - `scenario.json` – Describes reward function and 'done' condition.
-  - `metadata.json` – Specifies which `.state` file corresponds to the start state.
+  - `metadata.json` – Specifies potential starting states via `.state` files.
   - `rom.sfc` – ROM file for Mario Kart SNES (must be named `rom`)
   - `rom.sha` – SHA1 checksum for ROM file. Used to identify the ROM. (must be named `rom`).
   
