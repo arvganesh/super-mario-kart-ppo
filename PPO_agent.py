@@ -54,8 +54,8 @@ def get_args():
     parser.add_argument("--repeat-per-collect", type=int, default=4)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--hidden-size", type=int, default=512)
-    parser.add_argument("--training-num", type=int, default=2)
-    parser.add_argument("--test-num", type=int, default=2)
+    parser.add_argument("--training-num", type=int, default=10)
+    parser.add_argument("--test-num", type=int, default=10)
     parser.add_argument("--rew-norm", type=int, default=False)
     parser.add_argument("--vf-coef", type=float, default=0.25)
     parser.add_argument("--ent-coef", type=float, default=0.01)
@@ -115,7 +115,7 @@ def get_args():
 
 
 def test_ppo(args=get_args()):
-    env = make_retro_env(
+    train_envs, test_envs = make_retro_env(
         args.task,
         args.seed,
         args.training_num,
@@ -125,8 +125,9 @@ def test_ppo(args=get_args()):
         custom_integration_path=args.custom_integration_path
     )
 
-    args.state_shape = env.observation_space[0].shape or env.observation_space[0].n
-    args.action_shape = env.action_space[0].shape or env.action_space[0].n
+    args.state_shape = train_envs.observation_space[0].shape or train_envs.observation_space[0].n
+    args.action_shape = train_envs.action_space[0].shape or train_envs.action_space[0].n
+
 
     # should be N_FRAMES x H x W
     print("Observations shape:", args.state_shape)
@@ -172,7 +173,7 @@ def test_ppo(args=get_args()):
         reward_normalization=args.rew_norm,
         action_scaling=False,
         lr_scheduler=lr_scheduler,
-        action_space=env.action_space,
+        action_space=train_envs.action_space[0],
         eps_clip=args.eps_clip,
         value_clip=args.value_clip,
         dual_clip=args.dual_clip,
@@ -209,15 +210,15 @@ def test_ppo(args=get_args()):
     # when you have enough RAM
     buffer = VectorReplayBuffer(
         args.buffer_size,
-        buffer_num=len(env),
+        buffer_num=len(train_envs),
         ignore_obs_next=True,
         save_only_last_obs=True,
         stack_num=args.frame_stack,
     )
     
     # collector
-    train_collector = Collector(policy, env, buffer, exploration_noise=True)
-    test_collector = Collector(policy, env, exploration_noise=True)
+    train_collector = Collector(policy, train_envs, buffer, exploration_noise=True)
+    test_collector = Collector(policy, test_envs, exploration_noise=True)
 
     # log
     now = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
@@ -233,7 +234,7 @@ def test_ppo(args=get_args()):
             name=log_name.replace(os.path.sep, "__"),
             run_id=args.resume_id,
             config=args,
-            project=args.wandb_project,
+            project=args.wandb_project
         )
     writer = SummaryWriter(log_path)
     writer.add_text("args", str(args))
@@ -248,10 +249,7 @@ def test_ppo(args=get_args()):
         torch.save(policy.state_dict(), os.path.join(log_path, "policy.pth"))
 
     def stop_fn(mean_rewards):
-        if env.spec.reward_threshold:
-            return mean_rewards >= env.spec.reward_threshold
-        else:
-            return False
+        return mean_rewards >= 50
 
     def save_checkpoint_fn(epoch, env_step, gradient_step):
         # see also: https://pytorch.org/tutorials/beginner/saving_loading_models.html
@@ -263,17 +261,17 @@ def test_ppo(args=get_args()):
     def watch():
         print("Setup test envs ...")
         policy.eval()
-        env.seed(args.seed)
+        test_envs.seed(args.seed)
         if args.save_buffer_name:
             print(f"Generate buffer with size {args.buffer_size}")
             buffer = VectorReplayBuffer(
                 args.buffer_size,
-                buffer_num=len(env),
+                buffer_num=len(test_envs),
                 ignore_obs_next=True,
                 save_only_last_obs=True,
                 stack_num=args.frame_stack,
             )
-            collector = Collector(policy, env, buffer, exploration_noise=True)
+            collector = Collector(policy, test_envs, buffer, exploration_noise=True)
             result = collector.collect(n_step=args.buffer_size)
             print(f"Save buffer into {args.save_buffer_name}")
             # Unfortunately, pickle will cause oom with 1M buffer size
@@ -310,7 +308,7 @@ def test_ppo(args=get_args()):
         logger=logger,
         test_in_train=False,
         resume_from_log=args.resume_id is not None,
-        save_checkpoint_fn=save_checkpoint_fn,
+        save_checkpoint_fn=save_checkpoint_fn
     )
 
     pprint.pprint(result)

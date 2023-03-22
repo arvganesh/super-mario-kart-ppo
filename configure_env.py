@@ -6,7 +6,7 @@ import gymnasium as gym
 import warnings
 import os
 
-from tianshou.env import SubprocVectorEnv
+from tianshou.env import SubprocVectorEnv, ShmemVectorEnv
 
 class MaxAndSkipEnv(gym.Wrapper):
     """Return only every `skip`-th frame (frameskipping) using most recent raw
@@ -69,8 +69,6 @@ def create_wrapped_env(env_id, grayscale=True, resize_frame=True, normalize=Fals
 # Make environments for training and testing
 def make_retro_env(task, seed, training_num, test_num, **kwargs):
     # TODO: envpool integration
-    # env = create_wrapped_env(task, **kwargs)
-    env = SubprocVectorEnv([lambda: create_wrapped_env(task, **kwargs)])
-    # training_envs = SubprocVectorEnv([lambda: create_wrapped_env(task, **kwargs) for _ in range(training_num)])
-    # test_envs = SubprocVectorEnv([lambda: create_wrapped_env(task, **kwargs) for _ in range(test_num)])
-    return env, env, env # return the same environment for training and testing.
+    training_envs = ShmemVectorEnv([lambda: create_wrapped_env(task, **kwargs) for _ in range(training_num)])
+    test_envs = ShmemVectorEnv([lambda: create_wrapped_env(task, **kwargs) for _ in range(test_num)])
+    return training_envs, test_envs
