@@ -17,7 +17,7 @@ This guide is essentially a distilled version of [this](https://retro.readthedoc
   * [Action Space](#action-space)
   * [Observation Space](#observation-space)
   * [Reward Function, Done Condition, Time Penalty](#reward-function-done-condition-time-penalty)
-* Training Script Setup(#training-script-setup)
+* [Training Script Setup](#training-script-setup)
 
 ## Setup and Overview
 
