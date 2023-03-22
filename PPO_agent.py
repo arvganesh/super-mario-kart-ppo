@@ -1,3 +1,5 @@
+# Code adapted from https://github.com/thu-ml/tianshou/blob/master/examples/atari/atari_wrapper.py
+
 import argparse
 import datetime
 import os
