@@ -115,7 +115,7 @@ def get_args():
 
 
 def test_ppo(args=get_args()):
-    env, train_envs, test_envs = make_retro_env(
+    env = make_retro_env(
         args.task,
         args.seed,
         args.training_num,
@@ -209,15 +209,15 @@ def test_ppo(args=get_args()):
     # when you have enough RAM
     buffer = VectorReplayBuffer(
         args.buffer_size,
-        buffer_num=len(train_envs),
+        buffer_num=len(env),
         ignore_obs_next=True,
         save_only_last_obs=True,
         stack_num=args.frame_stack,
     )
     
     # collector
-    train_collector = Collector(policy, train_envs, buffer, exploration_noise=True)
-    test_collector = Collector(policy, test_envs, exploration_noise=True)
+    train_collector = Collector(policy, env, buffer, exploration_noise=True)
+    test_collector = Collector(policy, env, exploration_noise=True)
 
     # log
     now = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
@@ -263,17 +263,17 @@ def test_ppo(args=get_args()):
     def watch():
         print("Setup test envs ...")
         policy.eval()
-        test_envs.seed(args.seed)
+        env.seed(args.seed)
         if args.save_buffer_name:
             print(f"Generate buffer with size {args.buffer_size}")
             buffer = VectorReplayBuffer(
                 args.buffer_size,
-                buffer_num=len(test_envs),
+                buffer_num=len(env),
                 ignore_obs_next=True,
                 save_only_last_obs=True,
                 stack_num=args.frame_stack,
             )
-            collector = Collector(policy, test_envs, buffer, exploration_noise=True)
+            collector = Collector(policy, env, buffer, exploration_noise=True)
             result = collector.collect(n_step=args.buffer_size)
             print(f"Save buffer into {args.save_buffer_name}")
             # Unfortunately, pickle will cause oom with 1M buffer size
@@ -293,7 +293,7 @@ def test_ppo(args=get_args()):
 
     # test train_collector and start filling replay buffer
     print("Start training ...")
-    train_collector.collect(n_step=args.batch_size * args.training_num)
+    train_collector.collect(n_step=args.batch_size)
     # trainer
     result = onpolicy_trainer(
         policy,
