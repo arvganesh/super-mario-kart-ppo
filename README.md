@@ -173,5 +173,3 @@ This is just one example of a simple definition for the purposes of demonstratio
 ## Training Script Setup
 
 The training script in `PPO_agent.py` has many default arguments set. Ensure that the argument `--custom-integration-path` points to the folder containing custom integrations. Additionally, to change the name of the game being played, use the `--task` argument. By default, this argument is set to `MarioKart-Snes`.
-
-*Limitation: stable-retro only supports running 1 emulator per process, so training cannot be parallelized at the moment.*
