@@ -17,6 +17,7 @@ This guide is essentially a distilled version of [this](https://retro.readthedoc
   * [Action Space](#action-space)
   * [Observation Space](#observation-space)
   * [Reward Function, Done Condition, Time Penalty](#reward-function-done-condition-time-penalty)
+* Training Script Setup(#training-script-setup)
 
 ## Setup and Overview
 
@@ -106,6 +107,16 @@ Box(0, 255, (224, 256, 3), uint8)
 
 However, using [wrappers](https://gymnasium.farama.org/api/wrappers/observation_wrappers/), these observations can be normalized, grayscaled, and more.
 
+`configure_env.py` shows the various wrappers used to transformer the original observation space into the one used for training. In particular:
+
+- Grayscale
+- Resized to 84x84
+- Normalized
+- Frame Skipping + Max Pooling across the final two frames.
+- Frame Stacking
+
+The default observation warppers are very similar to ones used for training agents to play Atari.
+
 ### Reward Function, Done Condition, Time Penalty
 `data.json` contains locations of important variables. [See this](https://retro.readthedocs.io/en/latest/integration.html#variable-locations-data-json).
 ```json
@@ -159,3 +170,8 @@ The definition of the reward / time penalty / done condition is much more custom
 
 This is just one example of a simple definition for the purposes of demonstration.
 
+## Training Script Setup
+
+The training script in `PPO_agent.py` has many default arguments set. Ensure that the argument `--custom-integration-path` points to the folder containing custom integrations. Additionally, to change the name of the game being played, use the `--task` argument. By default, this argument is set to `MarioKart-Snes`.
+
+*Limitation: stable-retro only supports running 1 emulator per process, so training cannot be parallelized at the moment.*
