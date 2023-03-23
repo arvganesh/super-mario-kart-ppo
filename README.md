@@ -18,6 +18,7 @@ This guide is essentially a distilled version of [this](https://retro.readthedoc
   * [Observation Space](#observation-space)
   * [Reward Function, Done Condition, Time Penalty](#reward-function-done-condition-time-penalty)
 * [Training Script Setup](#training-script-setup)
+  * [Example Usage](#example-usage)
 
 ## Setup and Overview
 
@@ -173,3 +174,9 @@ This is just one example of a simple definition for the purposes of demonstratio
 ## Training Script Setup
 
 The training script in `PPO_agent.py` has many default arguments set. Ensure that the argument `--custom-integration-path` points to the folder containing custom integrations. Additionally, to change the name of the game being played, use the `--task` argument. By default, this argument is set to `MarioKart-Snes`.
+
+### Example Usage
+
+```
+`python PPO_agent.py --custom-integration-path Integrations --task MarioKart-Snes`
+```
