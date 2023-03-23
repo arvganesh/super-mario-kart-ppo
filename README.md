@@ -177,6 +177,7 @@ The training script in `PPO_agent.py` has many default arguments set. Ensure tha
 
 ### Example Usage
 
+```python
+python PPO_agent.py --custom-integration-path Integrations --task MarioKart-Snes
 ```
-`python PPO_agent.py --custom-integration-path Integrations --task MarioKart-Snes`
-```
+
