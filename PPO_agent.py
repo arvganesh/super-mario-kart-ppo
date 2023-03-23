@@ -49,13 +49,13 @@ def get_args():
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--epoch", type=int, default=100)
-    parser.add_argument("--step-per-epoch", type=int, default=100000)
+    parser.add_argument("--step-per-epoch", type=int, default=1000)
     parser.add_argument("--step-per-collect", type=int, default=1000)
-    parser.add_argument("--repeat-per-collect", type=int, default=4)
+    parser.add_argument("--repeat-per-collect", type=int, default=2)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--hidden-size", type=int, default=512)
-    parser.add_argument("--training-num", type=int, default=10)
-    parser.add_argument("--test-num", type=int, default=10)
+    parser.add_argument("--training-num", type=int, default=16)
+    parser.add_argument("--test-num", type=int, default=4)
     parser.add_argument("--rew-norm", type=int, default=False)
     parser.add_argument("--vf-coef", type=float, default=0.25)
     parser.add_argument("--ent-coef", type=float, default=0.01)
@@ -69,7 +69,7 @@ def get_args():
     parser.add_argument("--recompute-adv", type=int, default=0)
     parser.add_argument("--logdir", type=str, default="log")
     parser.add_argument("--render", type=float, default=0.)
-    parser.add_argument(
+    parser.add_argument( 
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
     parser.add_argument("--frame-stack", type=int, default=4)
@@ -236,13 +236,13 @@ def test_ppo(args=get_args()):
             config=args,
             project=args.wandb_project
         )
+
     writer = SummaryWriter(log_path)
     writer.add_text("args", str(args))
 
-    print("Initializing logger")
     if args.logger == "tensorboard":
         logger = TensorboardLogger(writer)
-    else:  # wandb
+    else: # wandb
         logger.load(writer)
 
     def save_best_fn(policy):
@@ -269,7 +269,7 @@ def test_ppo(args=get_args()):
                 buffer_num=len(test_envs),
                 ignore_obs_next=True,
                 save_only_last_obs=True,
-                stack_num=args.frame_stack,
+                stack_num=args.frame_stack
             )
             collector = Collector(policy, test_envs, buffer, exploration_noise=True)
             result = collector.collect(n_step=args.buffer_size)
@@ -292,17 +292,18 @@ def test_ppo(args=get_args()):
     # test train_collector and start filling replay buffer
     print("Start training ...")
     train_collector.collect(n_step=args.batch_size)
-    # trainer
+
+    # Trainer
     result = onpolicy_trainer(
         policy,
         train_collector,
         test_collector,
-        args.epoch,
-        args.step_per_epoch,
-        args.repeat_per_collect,
-        args.test_num,
-        args.batch_size,
-        step_per_collect=args.step_per_collect,
+        args.epoch, # number of epochs
+        args.step_per_epoch, # number of steps per epoch
+        args.repeat_per_collect, # how many times we update the policy w/ the same buffer state
+        args.test_num, # episodes per test
+        args.batch_size, # size of batch we update the policy on
+        step_per_collect=args.step_per_collect, # number of transitions per collect() call
         stop_fn=stop_fn,
         save_best_fn=save_best_fn,
         logger=logger,
