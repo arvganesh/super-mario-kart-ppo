@@ -44,7 +44,7 @@ class MaxAndSkipEnv(gym.Wrapper):
         return max_frame, total_reward, done, info
 
 # Given an environment ID, create a wrapped environment.
-def create_wrapped_env(env_id, grayscale=True, resize_frame=True, normalize=False, frame_skip = 4, frame_stack=4, custom_integration_path=None):
+def create_wrapped_env(env_id, grayscale=True, resize_frame=True, normalize=False, frame_skip = 4, frame_stack=4, max_episode_steps=1000, custom_integration_path=None):
     # Attempt to integrate new enviornment if specified
     if custom_integration_path is not None:
         SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__)) # Directory of the script
@@ -63,6 +63,8 @@ def create_wrapped_env(env_id, grayscale=True, resize_frame=True, normalize=Fals
         env = MaxAndSkipEnv(env, frame_skip)
     if frame_stack:
         env = gym.wrappers.FrameStack(env, frame_stack, False)
+    if max_episode_steps:
+        env = gym.wrappers.TimeLimit(env, max_episode_steps)
 
     return env
 
@@ -71,4 +73,8 @@ def make_retro_env(task, seed, training_num, test_num, **kwargs):
     # TODO: envpool integration
     training_envs = ShmemVectorEnv([lambda: create_wrapped_env(task, **kwargs) for _ in range(training_num)])
     test_envs = ShmemVectorEnv([lambda: create_wrapped_env(task, **kwargs) for _ in range(test_num)])
-    return training_envs, test_envs
+
+    # training_envs = DummyVectorEnv([lambda: create_wrapped_env(task, **kwargs) for _ in range(training_num)])
+    # test_envs = DummyVectorEnv([lambda: create_wrapped_env(task, **kwargs) for _ in range(training_num)])
+
+    return training_envs, training_envs

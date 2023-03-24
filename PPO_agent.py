@@ -13,14 +13,14 @@ from torch.utils.tensorboard import SummaryWriter
 from tianshou.data import Collector, VectorReplayBuffer
 from tianshou.policy import ICMPolicy, PPOPolicy
 from tianshou.trainer import onpolicy_trainer
-from tianshou.utils import TensorboardLogger, WandbLogger
+from tianshou.utils import TensorboardLogger, WandbLogger, LazyLogger
 from tianshou.utils.net.common import ActorCritic
 from tianshou.utils.net.discrete import Actor, Critic, IntrinsicCuriosityModule
 from configure_env import make_retro_env
 
 # TODO: Make this configurable from the command line
 class PolicyNet(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, device="cpu"):
         super().__init__()
         # Input: 4x84x84, assumes frame stacking, resizing, and gray-scaling have been done.
         self.network = torch.nn.Sequential(
@@ -32,10 +32,11 @@ class PolicyNet(torch.nn.Module):
             torch.nn.Flatten()
         )
         self.output_dim = 32 * 4 * 4 # Need this for Actor, Critic functions to work correctly.
+        self.device = device
 
     def forward(self, obs, state=None, info={}):
         if not isinstance(obs, torch.Tensor):
-            obs = torch.tensor(obs, dtype=torch.float)
+            obs = torch.tensor(obs, device=self.device, dtype=torch.float)
         logits = self.network(obs)
         return logits, state
 
@@ -48,13 +49,13 @@ def get_args():
     parser.add_argument("--buffer-size", type=int, default=100000)
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--epoch", type=int, default=100)
-    parser.add_argument("--step-per-epoch", type=int, default=1000)
-    parser.add_argument("--step-per-collect", type=int, default=1000)
-    parser.add_argument("--repeat-per-collect", type=int, default=2)
+    parser.add_argument("--epoch", type=int, default=5)
+    parser.add_argument("--step-per-epoch", type=int, default=10000)
+    parser.add_argument("--step-per-collect", type=int, default=100)
+    parser.add_argument("--repeat-per-collect", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--hidden-size", type=int, default=512)
-    parser.add_argument("--training-num", type=int, default=16)
+    parser.add_argument("--training-num", type=int, default=10)
     parser.add_argument("--test-num", type=int, default=4)
     parser.add_argument("--rew-norm", type=int, default=False)
     parser.add_argument("--vf-coef", type=float, default=0.25)
@@ -69,18 +70,19 @@ def get_args():
     parser.add_argument("--recompute-adv", type=int, default=0)
     parser.add_argument("--logdir", type=str, default="log")
     parser.add_argument("--render", type=float, default=0.)
-    parser.add_argument( 
+    parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
     parser.add_argument("--frame-stack", type=int, default=4)
     parser.add_argument("--frame-skip", type=int, default=4)
+    parser.add_argument("--max-episode-steps", type=int, default=1000)
     parser.add_argument("--resume-path", type=str, default=None)
     parser.add_argument("--resume-id", type=str, default=None)
     parser.add_argument(
         "--logger",
         type=str,
         default="wandb",
-        choices=["tensorboard", "wandb"],
+        choices=["tensorboard", "wandb", "lazy"],
     )
     parser.add_argument("--wandb-project", type=str, default="kart-snes.benchmark")
     parser.add_argument(
@@ -122,23 +124,24 @@ def test_ppo(args=get_args()):
         args.test_num,
         frame_stack=args.frame_stack,
         frame_skip=args.frame_skip,
-        custom_integration_path=args.custom_integration_path
+        custom_integration_path=args.custom_integration_path,
+        max_episode_steps=args.max_episode_steps
     )
 
     args.state_shape = train_envs.observation_space[0].shape or train_envs.observation_space[0].n
     args.action_shape = train_envs.action_space[0].shape or train_envs.action_space[0].n
 
-
     # should be N_FRAMES x H x W
     print("Observations shape:", args.state_shape)
     print("Actions shape:", args.action_shape)
+    print("Device:", args.device)
 
     # seed
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
     # define model
-    net = PolicyNet()
+    net = PolicyNet(device=args.device).to(device=args.device)
     actor = Actor(net, args.action_shape, device=args.device, softmax_output=False) # softmax_output is False b/c of line 154.
     critic = Critic(net, device=args.device)
     optim = torch.optim.Adam(
@@ -242,14 +245,16 @@ def test_ppo(args=get_args()):
 
     if args.logger == "tensorboard":
         logger = TensorboardLogger(writer)
-    else: # wandb
+    elif args.logger == "wandb": # wandb
         logger.load(writer)
+    else:
+        logger = LazyLogger()
 
     def save_best_fn(policy):
         torch.save(policy.state_dict(), os.path.join(log_path, "policy.pth"))
 
     def stop_fn(mean_rewards):
-        return mean_rewards >= 50
+        return mean_rewards >= 200
 
     def save_checkpoint_fn(epoch, env_step, gradient_step):
         # see also: https://pytorch.org/tutorials/beginner/saving_loading_models.html
@@ -292,6 +297,7 @@ def test_ppo(args=get_args()):
     # test train_collector and start filling replay buffer
     print("Start training ...")
     train_collector.collect(n_step=args.batch_size)
+    print("Train collector test done.")
 
     # Trainer
     result = onpolicy_trainer(
@@ -307,7 +313,7 @@ def test_ppo(args=get_args()):
         stop_fn=stop_fn,
         save_best_fn=save_best_fn,
         logger=logger,
-        test_in_train=False,
+        test_in_train=True,
         resume_from_log=args.resume_id is not None,
         save_checkpoint_fn=save_checkpoint_fn
     )
