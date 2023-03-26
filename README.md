@@ -116,7 +116,7 @@ However, using [wrappers](https://gymnasium.farama.org/api/wrappers/observation_
 - Frame Skipping + Max Pooling across the final two frames.
 - Frame Stacking
 
-The default observation warppers are very similar to ones used for training agents to play Atari.
+The default observation wrappers are very similar to ones used for training agents to play Atari.
 
 ### Reward Function, Done Condition, Time Penalty
 `data.json` contains locations of important variables. [See this](https://retro.readthedocs.io/en/latest/integration.html#variable-locations-data-json).
