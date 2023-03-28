@@ -2,7 +2,7 @@
     "done": {
       "condition": "all",
       "variables": {
-        "gameover": {
+        "laps": {
           "op": "equal",
           "reference": 133
         }
@@ -11,7 +11,8 @@
     "reward": {
       "variables": {
         "speed": {
-          "reward": 1.0
+          "reward": 1.0,
+          "measurement": "absolute"
         }
       },
       "time": {

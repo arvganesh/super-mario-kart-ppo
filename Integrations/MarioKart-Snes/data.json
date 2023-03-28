@@ -1,12 +1,16 @@
 {
     "info": {
-      "gameover": {
+      "laps": {
         "address": 8261825,
         "type": "|u1"
       },
       "speed": {
         "address": 8261866,
         "type": "<s2"
+      },
+      "surface": {
+        "address": 8261825,
+        "type": "|u1"
       }
     }
 }

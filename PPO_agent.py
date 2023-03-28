@@ -28,10 +28,10 @@ class PolicyNet(torch.nn.Module):
             torch.nn.ReLU(inplace=True),
             torch.nn.Conv2d(16, 32, 4, stride=2), # 16x20x20 -> 32x9x9
             torch.nn.ReLU(inplace=True),
-            torch.nn.AvgPool2d(2), # 32x9x9 -> 32x4x4
             torch.nn.Flatten()
         )
-        self.output_dim = 32 * 4 * 4 # Need this for Actor, Critic functions to work correctly.
+        with torch.no_grad():
+            self.output_dim = np.prod(self.network(torch.rand((4, 84, 84))).size()) # Need this for Actor, Critic functions to work correctly.
         self.device = device
 
     def forward(self, obs, state=None, info={}):
@@ -51,14 +51,14 @@ def get_args():
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--epoch", type=int, default=5)
     parser.add_argument("--step-per-epoch", type=int, default=10000)
-    parser.add_argument("--step-per-collect", type=int, default=100)
-    parser.add_argument("--repeat-per-collect", type=int, default=1)
+    parser.add_argument("--step-per-collect", type=int, default=500)
+    parser.add_argument("--repeat-per-collect", type=int, default=4)
     parser.add_argument("--batch-size", type=int, default=256)
-    parser.add_argument("--hidden-size", type=int, default=512)
-    parser.add_argument("--training-num", type=int, default=10)
+    parser.add_argument("--hidden-size", type=int, default=256)
+    parser.add_argument("--training-num", type=int, default=16)
     parser.add_argument("--test-num", type=int, default=4)
     parser.add_argument("--rew-norm", type=int, default=False)
-    parser.add_argument("--vf-coef", type=float, default=0.25)
+    parser.add_argument("--vf-coef", type=float, default=1)
     parser.add_argument("--ent-coef", type=float, default=0.01)
     parser.add_argument("--gae-lambda", type=float, default=0.95)
     parser.add_argument("--lr-decay", type=int, default=True)
@@ -142,8 +142,8 @@ def test_ppo(args=get_args()):
 
     # define model
     net = PolicyNet(device=args.device).to(device=args.device)
-    actor = Actor(net, args.action_shape, device=args.device, softmax_output=False) # softmax_output is False b/c of line 154.
-    critic = Critic(net, device=args.device)
+    actor = Actor(net, args.action_shape, [args.hidden_size], device=args.device, softmax_output=False) # softmax_output is False b/c of line 154.
+    critic = Critic(net, [args.hidden_size], device=args.device)
     optim = torch.optim.Adam(
         ActorCritic(actor, critic).parameters(), lr=args.lr, eps=1e-5
     )
@@ -172,9 +172,9 @@ def test_ppo(args=get_args()):
         gae_lambda=args.gae_lambda,
         max_grad_norm=args.max_grad_norm,
         vf_coef=args.vf_coef,
-        ent_coef=args.ent_coef,
+        ent_coef=args.ent_coef, 
         reward_normalization=args.rew_norm,
-        action_scaling=False,
+        action_scaling=True,
         lr_scheduler=lr_scheduler,
         action_space=train_envs.action_space[0],
         eps_clip=args.eps_clip,
@@ -225,40 +225,45 @@ def test_ppo(args=get_args()):
 
     # log
     now = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
+    
     # args.algo_name = "ppo_icm" if args.icm_lr_scale > 0 else "ppo"
     args.algo_name = "ppo"
     log_name = os.path.join(args.task, args.algo_name, str(args.seed), now)
     log_path = os.path.join(args.logdir, log_name)
 
     # Logger
-    if args.logger == "wandb":
-        logger = WandbLogger(
-            save_interval=1,
-            name=log_name.replace(os.path.sep, "__"),
-            run_id=args.resume_id,
-            config=args,
-            project=args.wandb_project
-        )
 
-    writer = SummaryWriter(log_path)
-    writer.add_text("args", str(args))
+    if not args.watch:
+        if args.logger == "wandb":
+            logger = WandbLogger(
+                save_interval=5,
+                name=log_name.replace(os.path.sep, "__"),
+                run_id=args.resume_id,
+                config=args,
+                project=args.wandb_project
+            )
 
-    if args.logger == "tensorboard":
-        logger = TensorboardLogger(writer)
-    elif args.logger == "wandb": # wandb
-        logger.load(writer)
-    else:
-        logger = LazyLogger()
+        writer = SummaryWriter(log_path)
+        writer.add_text("args", str(args))
+
+        if args.logger == "tensorboard":
+            logger = TensorboardLogger(writer)
+        elif args.logger == "wandb": # wandb
+            logger.load(writer)
+        else:
+            logger = LazyLogger()
 
     def save_best_fn(policy):
+        print("Saving best performer at:", str(os.path.join(log_path, "policy.pth")))
         torch.save(policy.state_dict(), os.path.join(log_path, "policy.pth"))
 
     def stop_fn(mean_rewards):
-        return mean_rewards >= 200
+        return False
 
     def save_checkpoint_fn(epoch, env_step, gradient_step):
         # see also: https://pytorch.org/tutorials/beginner/saving_loading_models.html
         ckpt_path = os.path.join(log_path, f"checkpoint_{epoch}.pth")
+        print("Saving checkpoint at:", str(ckpt_path))
         torch.save({"model": policy.state_dict()}, ckpt_path)
         return ckpt_path
 
@@ -313,7 +318,7 @@ def test_ppo(args=get_args()):
         stop_fn=stop_fn,
         save_best_fn=save_best_fn,
         logger=logger,
-        test_in_train=True,
+        test_in_train=False,
         resume_from_log=args.resume_id is not None,
         save_checkpoint_fn=save_checkpoint_fn
     )
