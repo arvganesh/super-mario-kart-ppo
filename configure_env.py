@@ -44,7 +44,7 @@ class MaxAndSkipEnv(gym.Wrapper):
         return max_frame, total_reward, done, info
 
 # Given an environment ID, create a wrapped environment.
-def create_wrapped_env(env_id, grayscale=True, resize_frame=True, normalize=False, frame_skip = 4, frame_stack=4, max_episode_steps=1000, custom_integration_path=None):
+def create_wrapped_env(env_id, grayscale=True, resize_frame=True, normalize=True, frame_skip = 4, frame_stack=4, max_episode_steps=1000, custom_integration_path=None):
     # Attempt to integrate new enviornment if specified
     if custom_integration_path is not None:
         SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__)) # Directory of the script
