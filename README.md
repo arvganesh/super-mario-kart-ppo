@@ -42,6 +42,8 @@ A high-level explanation of all the files in this repo:
   - `rom.sha` – SHA1 checksum for ROM file. Used to identify the ROM. (must be named `rom`).
   
 - `example_integration.py`: Shows how to integrate new roms into stable-retro without modifying the stable-retro pacakge.
+- `PPO_agent.py`: Script for training PPO agents on games in stable-retro. Uses Tianshou.
+- `configure_env.py`: Create wrapped environments for training and testing agents.
 
 More detailed explanations of the files inside `Integrations/MarioKart-Snes` can be found [here](https://retro.readthedocs.io/en/latest/integration.html#game-integration).
 
