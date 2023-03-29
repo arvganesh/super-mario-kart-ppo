@@ -120,12 +120,12 @@ def test_ppo(args=get_args()):
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    # define model
+    # Define model
     net = PolicyNet(device=args.device).to(device=args.device)
     actor = Actor(net, args.action_shape, [args.hidden_size], device=args.device, softmax_output=False) # softmax_output is False b/c torch.distributions.Categorical takes in log-probs.
     critic = Critic(net, [args.hidden_size], device=args.device)
     optim = torch.optim.Adam(
-        ActorCritic(actor, critic).parameters(), lr=args.lr, eps=1e-5
+        ActorCritic(actor, critic).parameters(), lr=args.lr
     )
 
     lr_scheduler = None
