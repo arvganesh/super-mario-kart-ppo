@@ -142,7 +142,7 @@ def test_ppo(args=get_args()):
 
     # define model
     net = PolicyNet(device=args.device).to(device=args.device)
-    actor = Actor(net, args.action_shape, [args.hidden_size], device=args.device, softmax_output=False) # softmax_output is False b/c of line 154.
+    actor = Actor(net, args.action_shape, [args.hidden_size], device=args.device, softmax_output=False) # softmax_output is False b/c torch.distributions.Categorical takes in log-probs.
     critic = Critic(net, [args.hidden_size], device=args.device)
     optim = torch.optim.Adam(
         ActorCritic(actor, critic).parameters(), lr=args.lr, eps=1e-5
@@ -232,7 +232,6 @@ def test_ppo(args=get_args()):
     log_path = os.path.join(args.logdir, log_name)
 
     # Logger
-
     if not args.watch:
         if args.logger == "wandb":
             logger = WandbLogger(
