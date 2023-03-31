@@ -57,8 +57,8 @@ def create_wrapped_env(env_id, grayscale=True, resize_frame=True, normalize=True
         env = gym.wrappers.GrayScaleObservation(env)
     if resize_frame:
         env = gym.wrappers.ResizeObservation(env, (84, 84))
-    if normalize:
-        env = gym.wrappers.NormalizeObservation(env)
+    # if normalize:
+    #     env = gym.wrappers.NormalizeObservation(env)
     if frame_skip:
         env = MaxAndSkipEnv(env, frame_skip)
     if frame_stack:

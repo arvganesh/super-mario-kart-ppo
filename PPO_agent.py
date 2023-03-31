@@ -24,10 +24,10 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=str, default="MarioKart-Snes")
     parser.add_argument("--custom-integration-path", type=str, default=None)
-    parser.add_argument("--seed", type=int, default=4213)
+    parser.add_argument("--seed", type=int, default=123456)
     parser.add_argument("--scale-obs", type=int, default=1)
     parser.add_argument("--buffer-size", type=int, default=100000)
-    parser.add_argument("--lr", type=float, default=3e-4)
+    parser.add_argument("--lr", type=float, default=2.5e-4)
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--epoch", type=int, default=5)
     parser.add_argument("--step-per-epoch", type=int, default=100000)
@@ -38,11 +38,11 @@ def get_args():
     parser.add_argument("--training-num", type=int, default=16)
     parser.add_argument("--test-num", type=int, default=4)
     parser.add_argument("--rew-norm", type=int, default=True)
-    parser.add_argument("--vf-coef", type=float, default=1)
+    parser.add_argument("--vf-coef", type=float, default=0.25)
     parser.add_argument("--ent-coef", type=float, default=0.01)
     parser.add_argument("--gae-lambda", type=float, default=0.95)
     parser.add_argument("--lr-decay", type=int, default=True)
-    parser.add_argument("--max-grad-norm", type=float, default=None)
+    parser.add_argument("--max-grad-norm", type=float, default=0.5)
     parser.add_argument("--eps-clip", type=float, default=0.1)
     parser.add_argument("--dual-clip", type=float, default=None)
     parser.add_argument("--value-clip", type=int, default=1)
@@ -125,7 +125,7 @@ def test_ppo(args=get_args()):
     actor = Actor(net, args.action_shape, [args.hidden_size], device=args.device, softmax_output=False) # softmax_output is False b/c torch.distributions.Categorical takes in log-probs.
     critic = Critic(net, [args.hidden_size], device=args.device)
     optim = torch.optim.Adam(
-        ActorCritic(actor, critic).parameters(), lr=args.lr
+        ActorCritic(actor, critic).parameters(), lr=args.lr, eps=1e-5
     )
 
     lr_scheduler = None
