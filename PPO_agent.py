@@ -34,6 +34,7 @@ def get_args():
     parser.add_argument("--step-per-collect", type=int, default=1024)
     parser.add_argument("--repeat-per-collect", type=int, default=4)
     parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--gae-batch-size", type=int, default=256)
     parser.add_argument("--hidden-size", type=int, default=256)
     parser.add_argument("--training-num", type=int, default=16)
     parser.add_argument("--test-num", type=int, default=4)
@@ -119,14 +120,28 @@ def test_ppo(args=get_args()):
     # seed
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
+    train_envs.seed(args.seed)
+    test_envs.seed(args.seed)
 
     # Define model
     net = PolicyNet(device=args.device).to(device=args.device)
     actor = Actor(net, args.action_shape, [args.hidden_size], device=args.device, softmax_output=False) # softmax_output is False b/c torch.distributions.Categorical takes in log-probs.
     critic = Critic(net, [args.hidden_size], device=args.device)
+    actor_critic = ActorCritic(actor, critic)
     optim = torch.optim.Adam(
-        ActorCritic(actor, critic).parameters(), lr=args.lr, eps=1e-5
+        actor_critic.parameters(), lr=args.lr, eps=1e-5
     )
+
+    # Orthogonal initialization of linear layers
+    for m in actor.modules():
+        if isinstance(m, torch.nn.Linear):
+            torch.nn.init.orthogonal_(m.weight)
+            torch.nn.init.zeros_(m.bias)
+    
+    for m in critic.modules():
+        if isinstance(m, torch.nn.Linear):
+            torch.nn.init.orthogonal_(m.weight)
+            torch.nn.init.zeros_(m.bias)
 
     lr_scheduler = None
     if args.lr_decay:
@@ -151,6 +166,7 @@ def test_ppo(args=get_args()):
         discount_factor=args.gamma,
         gae_lambda=args.gae_lambda,
         max_grad_norm=args.max_grad_norm,
+        max_batchsize=args.gae_batch_size,
         vf_coef=args.vf_coef,
         ent_coef=args.ent_coef, 
         reward_normalization=args.rew_norm,
@@ -186,8 +202,15 @@ def test_ppo(args=get_args()):
 
     # load a previous policy
     if args.resume_path:
-        policy.load_state_dict(torch.load(args.resume_path, map_location=args.device))
-        print("Loaded agent from: ", args.resume_path)
+        # load from existing checkpoint
+        print(f"Loading agent under {log_path}")
+        if os.path.exists(args.resume_path):
+            checkpoint = torch.load(args.resume_path, map_location=args.device)
+            policy.load_state_dict(checkpoint["model"])
+            optim.load_state_dict(checkpoint["optim"])
+            print("Successfully restore policy and optim.")
+        else:
+            print("Fail to restore policy and optim.")
 
     # replay buffer: `save_last_obs` and `stack_num` can be removed together
     # when you have enough RAM
@@ -200,8 +223,8 @@ def test_ppo(args=get_args()):
     )
     
     # collector
-    train_collector = Collector(policy, train_envs, buffer, exploration_noise=False)
-    test_collector = Collector(policy, test_envs, exploration_noise=False)
+    train_collector = Collector(policy, train_envs, buffer, exploration_noise=True)
+    test_collector = Collector(policy, test_envs, exploration_noise=True)
 
     # log
     now = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
@@ -243,7 +266,12 @@ def test_ppo(args=get_args()):
         # see also: https://pytorch.org/tutorials/beginner/saving_loading_models.html
         ckpt_path = os.path.join(log_path, f"checkpoint_{epoch}.pth")
         print("Saving checkpoint at:", str(ckpt_path))
-        torch.save({"model": policy.state_dict()}, ckpt_path)
+        torch.save(
+            {
+                "model": policy.state_dict(),
+                "optim": optim.state_dict(),
+            }, ckpt_path
+        )
         return ckpt_path
 
     # watch agent's performance
