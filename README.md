@@ -126,20 +126,34 @@ The default observation wrappers are very similar to ones used for training agen
 ```json
 {
     "info": {
-      "gameover": {
+      "laps": {
         "address": 8261825,
         "type": "|u1"
       },
       "speed": {
         "address": 8261866,
         "type": "<s2"
+      },
+      "surface": {
+        "address": 8261806,
+        "type": "|u1"
+      },
+      "collision": {
+        "address": 8261714,
+        "type": "|u1"
+      },
+      "backward": {
+        "address": 267,
+        "type": "|u1"
       }
     }
 }
 ```
-- `gameover` is at address `8261825` and is an unsigned single byte quantity. Endianness does not need to be specified for 1-byte quantities, hence `|`.
+- `laps` is at address `8261825` and is an unsigned single byte quantity. Endianness does not need to be specified for 1-byte quantities, hence `|`.
 
 - `speed` is at address `8261866` and is a signed 2-byte integer in little-endian (denoted by `<`).
+
+The same applies to the rest of the variable.
 
 `scenario.json` uses these variables to define a reward function and done condition. [See this](https://retro.readthedocs.io/en/latest/integration.html#scenario-scenario-json).
 ```json
@@ -147,32 +161,38 @@ The default observation wrappers are very similar to ones used for training agen
     "done": {
       "condition": "all",
       "variables": {
-        "gameover": {
+        "laps": {
           "op": "equal",
           "reference": 133
         }
       }
     },
     "reward": {
-      "variables": {
-        "speed": {
-          "reward": 1.0
-        }
-      },
-      "time": {
-        "penalty": 1.0
-      }
-    }
+      "script": "lua:basic_clipped_reward"
+    },
+    "scripts": [
+      "script.lua"
+    ]
 }
 ```
 
-`done`: the game ends when `gameover == 133`, indicating that we have completed the last lap. This is based on how the Super Mario Kart developers defined it.
+The done condition is when the `laps` variable is `133` as defined by the game.
 
-`reward`: I've specified that the reward should come from the `speed` variable. Finally, at time step, we should have a time penalty of `1.0`.
+The reward is a function of variables in `data.json`. Here, we define an example reward by the lua function `basic_clpped_reward`:
 
-The definition of the reward / time penalty / done condition is much more customizable than I've shown here. More information on the specifics of this definition can be found [here](https://retro.readthedocs.io/en/latest/integration.html#scenario-scenario-json).
+```lua
+function basic_clipped_reward ()
+    -- Penalty for going off-road, collision, going backward, or not moving
+    if data.surface ~= 64 or data.collision ~= 0 or data.backward == 0x10 or data.speed == 0.0 then
+        return -1.0
+    end
 
-This is just one example of a simple definition for the purposes of demonstration.
+    -- Ensures speed > 0 reward gets a positive reward
+    return 1.0
+end
+```
+
+Using `data.VARIABLE_NAME` allows you to access the value of `VARIABLE_NAME` as defined by `data.json`.
 
 ## Training Script Setup
 
