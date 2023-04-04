@@ -9,8 +9,17 @@
         "type": "<s2"
       },
       "surface": {
-        "address": 8261825,
+        "address": 8261806,
         "type": "|u1"
+      },
+      "collision": {
+        "address": 8261714,
+        "type": "|u1"
+      },
+      "backward": {
+        "address": 267,
+        "type": "|u1"
+      }
       }
     }
 }
