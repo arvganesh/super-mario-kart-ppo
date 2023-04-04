@@ -17,26 +17,26 @@ from tianshou.utils import TensorboardLogger, WandbLogger, LazyLogger
 from tianshou.utils.net.common import ActorCritic
 from tianshou.utils.net.discrete import Actor, Critic, IntrinsicCuriosityModule
 from configure_env import make_retro_env
-from network import PolicyNet
+from network import PolicyNet, layer_init
 
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=str, default="MarioKart-Snes")
     parser.add_argument("--custom-integration-path", type=str, default=None)
-    parser.add_argument("--seed", type=int, default=123456)
+    parser.add_argument("--seed", type=int, default=646269)
     parser.add_argument("--scale-obs", type=int, default=1)
     parser.add_argument("--buffer-size", type=int, default=100000)
     parser.add_argument("--lr", type=float, default=2.5e-4)
     parser.add_argument("--gamma", type=float, default=0.99)
     parser.add_argument("--epoch", type=int, default=5)
     parser.add_argument("--step-per-epoch", type=int, default=100000)
-    parser.add_argument("--step-per-collect", type=int, default=1024)
+    parser.add_argument("--step-per-collect", type=int, default=1000)
     parser.add_argument("--repeat-per-collect", type=int, default=4)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--gae-batch-size", type=int, default=256)
     parser.add_argument("--hidden-size", type=int, default=256)
-    parser.add_argument("--training-num", type=int, default=16)
+    parser.add_argument("--training-num", type=int, default=20)
     parser.add_argument("--test-num", type=int, default=4)
     parser.add_argument("--rew-norm", type=int, default=True)
     parser.add_argument("--vf-coef", type=float, default=0.25)
@@ -123,25 +123,24 @@ def test_ppo(args=get_args()):
     train_envs.seed(args.seed)
     test_envs.seed(args.seed)
 
-    # Define model
-    net = PolicyNet(device=args.device).to(device=args.device)
-    actor = Actor(net, args.action_shape, [args.hidden_size], device=args.device, softmax_output=False) # softmax_output is False b/c torch.distributions.Categorical takes in log-probs.
-    critic = Critic(net, [args.hidden_size], device=args.device)
+    # Define model. TODO: Move this outside of Tianshou wrappers.
+    actor_net = PolicyNet(device=args.device).to(device=args.device)
+    critic_net = PolicyNet(device=args.device).to(device=args.device)
+    actor = Actor(actor_net, args.action_shape, [args.hidden_size], device=args.device, softmax_output=False) # softmax_output is False b/c torch.distributions.Categorical takes in log-probs.
+    critic = Critic(critic_net, [args.hidden_size], device=args.device)
     actor_critic = ActorCritic(actor, critic)
     optim = torch.optim.Adam(
         actor_critic.parameters(), lr=args.lr, eps=1e-5
     )
 
-    # Orthogonal initialization of linear layers
-    for m in actor.modules():
-        if isinstance(m, torch.nn.Linear):
-            torch.nn.init.orthogonal_(m.weight)
-            torch.nn.init.zeros_(m.bias)
-    
-    for m in critic.modules():
-        if isinstance(m, torch.nn.Linear):
-            torch.nn.init.orthogonal_(m.weight)
-            torch.nn.init.zeros_(m.bias)
+    # Last Layer Initialization
+    layer_init(actor.last.model[-1], 0.01)
+    layer_init(critic.last.model[-1], 1.0)
+
+    print("Num Parameters: ")
+    print("Actor: ", sum(p.numel() for p in actor.parameters() if p.requires_grad))
+    print("Critic: ", sum(p.numel() for p in critic.parameters() if p.requires_grad))
+    print("Total: ", sum(p.numel() for p in actor_critic.parameters() if p.requires_grad))
 
     lr_scheduler = None
     if args.lr_decay:
@@ -170,7 +169,7 @@ def test_ppo(args=get_args()):
         vf_coef=args.vf_coef,
         ent_coef=args.ent_coef, 
         reward_normalization=args.rew_norm,
-        action_scaling=True,
+        action_scaling=False,
         lr_scheduler=lr_scheduler,
         action_space=train_envs.action_space[0],
         eps_clip=args.eps_clip,
@@ -318,10 +317,10 @@ def test_ppo(args=get_args()):
         test_collector,
         args.epoch, # number of epochs
         args.step_per_epoch, # number of steps per epoch
-        args.repeat_per_collect, # how many times we update the policy w/ the same buffer state
+        args.repeat_per_collect, # how many times we update the policy w/ the same batch
         args.test_num, # episodes per test
-        args.batch_size, # size of batch we update the policy on
-        step_per_collect=args.step_per_collect, # number of transitions per collect() call
+        args.batch_size, # size of batch we update the policy on - "mini_batch" size
+        step_per_collect=args.step_per_collect, # number of steps per collect call, equivalent to "batch_size" in other vectorized PPO implementations
         stop_fn=stop_fn,
         save_best_fn=save_best_fn,
         logger=logger,

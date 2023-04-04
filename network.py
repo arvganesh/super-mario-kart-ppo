@@ -14,9 +14,11 @@ class PolicyNet(torch.nn.Module):
         super().__init__()
         # Input: 4x84x84, assumes frame stacking, resizing, and gray-scaling have been done.
         self.network = torch.nn.Sequential(
-            layer_init(torch.nn.Conv2d(4, 16, 8, stride=4)), # 4x84x84 -> 16x20x20
+            layer_init(torch.nn.Conv2d(4, 32, 8, stride=4)), # 4x84x84 -> 32x20x20
             torch.nn.ReLU(inplace=True),
-            layer_init(torch.nn.Conv2d(16, 32, 4, stride=2)), # 16x20x20 -> 32x9x9
+            layer_init(torch.nn.Conv2d(32, 64, 4, stride=2)), # 32x20x20 -> 64x9x9
+            torch.nn.ReLU(inplace=True),
+            layer_init(torch.nn.Conv2d(64, 64, 3, stride=1)), # 64x9x9 -> 64x7x7
             torch.nn.ReLU(inplace=True),
             torch.nn.Flatten()
         )
