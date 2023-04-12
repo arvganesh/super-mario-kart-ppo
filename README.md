@@ -36,7 +36,8 @@ A high-level explanation of all the files in this repo:
 - `Integrations/MarioKart-Snes/` – Contains integration data for Super Mario Kart on the SNES.
   - `Level1.state` – Save state from ROM, the point in the game where training episodes begin.
   - `data.json` – Locations of important variables in emulator RAM, used for reward function and done condition.
-  - `scenario.json` – Describes reward function and 'done' condition.
+  - `scenario.json` – Specifies reward function and 'done' condition.
+  - `script.lua` – Definition of reward function and 'done' condition, used in `scenario.json`.
   - `metadata.json` – Specifies potential starting states via `.state` files.
   - `rom.sfc` – ROM file for Mario Kart SNES (must be named `rom`)
   - `rom.sha` – SHA1 checksum for ROM file. Used to identify the ROM. (must be named `rom`).
@@ -83,7 +84,16 @@ There are [4 primary ways](https://retro.readthedocs.io/en/latest/python.html#re
 
 *Note: Be sure to specify the type of action space you want when calling `retro.make()`.*
 
-I will be using `retro.Actions.DISCRETE`, where we break down our possible action space into a set of discrete combinations. There are $2^{12}$ possible buttom combinations, but many combinations are invalid. For example, it doesn't make sense to press `UP` and `DOWN` at the same time. Additionaly, `SELECT` and `START` are removed as those two buttons are used to navigate game menus. To remove these invalid combinations, the buttons on the controller were broken down into 4 groups, with possible button combinations defined for each group. The total number of combinations is $3 * 3 * 13 * 4 = 468$.
+However, using a wrapper defined in `configure_env.py`, I will simplify the action space into one that is useful for driving:
+
+```
+B (accelerate)
+B + LEFT (accelerate + turn left)
+B + RIGHT (accelerate + turn right)
+B + L (accelerate + hop)
+```
+
+It's also possible to use a pre-discretized action space, defined by stable-retro. There are $2^{12}$ possible buttom combinations, but many combinations are invalid. For example, it doesn't make sense to press `UP` and `DOWN` at the same time. Additionaly, `SELECT` and `START` are removed as those two buttons are used to navigate game menus. To remove these invalid combinations, the buttons on the controller were broken down into 4 groups, with possible button combinations defined for each group. The total number of combinations is $3 * 3 * 13 * 4 = 468$.
 
 ```python
 >>> print(env.action_space)
@@ -119,56 +129,63 @@ However, using [wrappers](https://gymnasium.farama.org/api/wrappers/observation_
 - Frame Skipping + Max Pooling across the final two frames.
 - Frame Stacking
 
-The default observation wrappers are very similar to ones used for training agents to play Atari.
+The default observation wrappers are very similar to ones used for training agents to play Atari games.
 
 ### Reward Function, Done Condition, Time Penalty
 `data.json` contains locations of important variables. [See this](https://retro.readthedocs.io/en/latest/integration.html#variable-locations-data-json).
 ```json
 {
-    "info": {
-      "laps": {
-        "address": 8261825,
-        "type": "|u1"
-      },
-      "speed": {
-        "address": 8261866,
-        "type": "<s2"
-      },
-      "surface": {
-        "address": 8261806,
-        "type": "|u1"
-      },
-      "collision": {
-        "address": 8261714,
-        "type": "|u1"
-      },
-      "backward": {
-        "address": 267,
-        "type": "|u1"
-      }
+  "info": {
+    "laps": {
+      "address": 8261825,
+      "type": "|u1"
+    },
+    "speed": {
+      "address": 8261866,
+      "type": "<s2"
+    },
+    "surface": {
+      "address": 8261806,
+      "type": "|u1"
+    },
+    "collision": {
+      "address": 8261714,
+      "type": "|u1"
+    },
+    "backward": {
+      "address": 267,
+      "type": "|u1"
+    },
+    "checkpoint": {
+      "address": 8261824,
+      "type": "|u1"
+    },
+    "num_checkpoints": {
+      "address": 8257864,
+      "type": "|u1"
+    },
+    "current_frame": {
+      "address": 8257592,
+      "type": "<u2"
     }
+  }
 }
 ```
 - `laps` is at address `8261825` and is an unsigned single byte quantity. Endianness does not need to be specified for 1-byte quantities, hence `|`.
 
 - `speed` is at address `8261866` and is a signed 2-byte integer in little-endian (denoted by `<`).
 
-The same applies to the rest of the variable.
+The same applies to the rest of the variables.
 
 `scenario.json` uses these variables to define a reward function and done condition. [See this](https://retro.readthedocs.io/en/latest/integration.html#scenario-scenario-json).
+
 ```json
 {
     "done": {
-      "condition": "all",
-      "variables": {
-        "laps": {
-          "op": "equal",
-          "reference": 133
-        }
-      }
+      "script": "lua:isDoneTrain"
     },
     "reward": {
-      "script": "lua:basic_clipped_reward"
+      "script": "lua:overall_reward"
     },
     "scripts": [
       "script.lua"
@@ -176,27 +193,43 @@ The same applies to the rest of the variable.
 }
 ```
 
-The done condition is when the `laps` variable is `133` as defined by the game.
-
-The reward is a function of variables in `data.json`. Here, we define an example reward by the lua function `basic_clpped_reward`:
-
-```lua
-function basic_clipped_reward ()
-    -- Penalty for going off-road, collision, going backward, or not moving
-    if data.surface ~= 64 or data.collision ~= 0 or data.backward == 0x10 or data.speed == 0.0 then
-        return -1.0
-    end
-
-    -- Ensures speed > 0 reward gets a positive reward
-    return 1.0
-end
-```
+The done condition is a function of variables in `data.json`. See `Integrations/MarioKart-Snes/script.lua` for more details.
 
 Using `data.VARIABLE_NAME` allows you to access the value of `VARIABLE_NAME` as defined by `data.json`.
 
+```lua
+-- Done Conditions --
+function overall_reward()
+    if getLap() >= 5 or earlyStop then
+        return true
+    end
+    return false
+end
+```
+
+The reward is a function of variables in `data.json`. Here, we define an example reward by the lua function `overall_reward`:
+
+```lua
+function overall_reward()
+    local wall_cf = -10.0
+    local checkpoint_cf = 300.0
+    local terrain_cf = -15.0
+    local time_cf = -1.0
+    local backwards_cf = -2.0
+    local reward = 0
+    if not isDoneTrain() then
+        reward = wall_cf * wall_reward() + checkpoint_cf * checkpoint_reward() + terrain_cf * terrain_reward() + time_cf * time_reward() + backwards_cf * backwards_reward()
+        return reward
+    end
+    return reward
+end
+```
+
+NOTE: The other functions defined here are explained further in `Integrations/MarioKart-Snes/script.lua`.
+
 ## Training Script Setup
 
-The training script in `PPO_agent.py` has many default arguments set. Ensure that the argument `--custom-integration-path` points to the folder containing custom integrations. Additionally, to change the name of the game being played, use the `--task` argument. By default, this argument is set to `MarioKart-Snes`. Additionally, hyperparameters can be directly configured from the command line.
+The training script in `PPO_agent.py` has many default arguments set. Ensure that the argument `--custom-integration-path` points to the folder containing custom integrations. Additionally, to change the name of the game being played, use the `--task` argument. By default, this argument is set to `MarioKart-Snes`. Additionally, hyperparameters can be directly configured from the command line. You can also specify which 'scenario' and 'data' file you want the environment to run from using the `--scenario` and `--info` flags respectively.
 
 ### Example Usage
 
