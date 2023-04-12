@@ -1,10 +1,14 @@
-# Integrating new ROMs into stable-retro for RL
+# Training a PPO agent to play Mario Kart, from start to finish.
 
-This repo describes how to integrate new ROMs into [stable-retro](https://github.com/MatPoliquin/stable-retro) + other setup guidelines.
+![eval_deterministic](https://user-images.githubusercontent.com/21336191/231527291-84b5e5d3-379a-4ee4-a7e2-8b9369d400fc.gif)
 
-In this example, we integrate Super Mario Kart (SNES).
+*actual agent footage, very sped up*
 
-This guide is essentially a distilled version of [this](https://retro.readthedocs.io/en/latest/integration.html#) + some details about the game environment.
+This repo describes how to integrate new ROMs into [stable-retro](https://github.com/MatPoliquin/stable-retro) + other setup guidelines. It also provides a simple training script for trianing agents.
+
+In this example, we integrate Super Mario Kart (SNES) and use PPO to train an agent to complete Mario Circuit on Time Trials mode.
+
+Most information in this guide summarizes [this](https://retro.readthedocs.io/en/latest/integration.html#) + adds some extra details about the game environment.
 
 ## Table of Contents
 
