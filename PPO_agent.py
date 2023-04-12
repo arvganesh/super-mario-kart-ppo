@@ -6,6 +6,7 @@ import os
 import pprint
 
 import numpy as np
+import wandb
 import torch
 from torch.optim.lr_scheduler import LambdaLR
 from torch.utils.tensorboard import SummaryWriter
@@ -24,6 +25,9 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=str, default="MarioKart-Snes")
     parser.add_argument("--custom-integration-path", type=str, default=None)
+    parser.add_argument("--scenario", type=str, default="scenario")
+    parser.add_argument("--info", type=str, default=None)
+    parser.add_argument("--video-path", type=str, default=None)
     parser.add_argument("--seed", type=int, default=646269)
     parser.add_argument("--scale-obs", type=int, default=1)
     parser.add_argument("--buffer-size", type=int, default=100000)
@@ -36,8 +40,8 @@ def get_args():
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--gae-batch-size", type=int, default=256)
     parser.add_argument("--hidden-size", type=int, default=256)
-    parser.add_argument("--training-num", type=int, default=20)
-    parser.add_argument("--test-num", type=int, default=4)
+    parser.add_argument("--training-num", type=int, default=16)
+    parser.add_argument("--test-num", type=int, default=1)
     parser.add_argument("--rew-norm", type=int, default=True)
     parser.add_argument("--vf-coef", type=float, default=0.25)
     parser.add_argument("--ent-coef", type=float, default=0.01)
@@ -100,13 +104,15 @@ def get_args():
 def test_ppo(args=get_args()):
     train_envs, test_envs = make_retro_env(
         args.task,
-        args.seed,
         args.training_num,
         args.test_num,
         frame_stack=args.frame_stack,
         frame_skip=args.frame_skip,
+        scenario=args.scenario,
+        info=args.info,
         custom_integration_path=args.custom_integration_path,
-        max_episode_steps=args.max_episode_steps
+        max_episode_steps=args.max_episode_steps,
+        video_path=args.video_path,
     )
 
     args.state_shape = train_envs.observation_space[0].shape or train_envs.observation_space[0].n
@@ -134,8 +140,8 @@ def test_ppo(args=get_args()):
     )
 
     # Last Layer Initialization
-    layer_init(actor.last.model[-1], 0.01)
-    layer_init(critic.last.model[-1], 1.0)
+    layer_init(actor.last.model[-1], std=0.01)
+    layer_init(critic.last.model[-1], std=1.0)
 
     print("Num Parameters: ")
     print("Actor: ", sum(p.numel() for p in actor.parameters() if p.requires_grad))
@@ -202,7 +208,7 @@ def test_ppo(args=get_args()):
     # load a previous policy
     if args.resume_path:
         # load from existing checkpoint
-        print(f"Loading agent under {log_path}")
+        print(f"Loading agent under {args.resume_path}")
         if os.path.exists(args.resume_path):
             checkpoint = torch.load(args.resume_path, map_location=args.device)
             policy.load_state_dict(checkpoint["model"])
@@ -211,8 +217,6 @@ def test_ppo(args=get_args()):
         else:
             print("Fail to restore policy and optim.")
 
-    # replay buffer: `save_last_obs` and `stack_num` can be removed together
-    # when you have enough RAM
     buffer = VectorReplayBuffer(
         args.buffer_size,
         buffer_num=len(train_envs),
@@ -228,7 +232,6 @@ def test_ppo(args=get_args()):
     # log
     now = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
     
-    # args.algo_name = "ppo_icm" if args.icm_lr_scale > 0 else "ppo"
     args.algo_name = "ppo"
     log_name = os.path.join(args.task, args.algo_name, str(args.seed), now)
     log_path = os.path.join(args.logdir, log_name)
@@ -236,6 +239,7 @@ def test_ppo(args=get_args()):
     # Logger
     if not args.watch:
         if args.logger == "wandb":
+
             logger = WandbLogger(
                 save_interval=5,
                 name=log_name.replace(os.path.sep, "__"),
@@ -243,6 +247,10 @@ def test_ppo(args=get_args()):
                 config=args,
                 project=args.wandb_project
             )
+
+            wandb.watch(actor, log="all", log_freq=10)
+            wandb.watch(critic, log="all", log_freq=10)
+            
 
         writer = SummaryWriter(log_path)
         writer.add_text("args", str(args))
@@ -262,7 +270,6 @@ def test_ppo(args=get_args()):
         return False
 
     def save_checkpoint_fn(epoch, env_step, gradient_step):
-        # see also: https://pytorch.org/tutorials/beginner/saving_loading_models.html
         ckpt_path = os.path.join(log_path, f"checkpoint_{epoch}.pth")
         print("Saving checkpoint at:", str(ckpt_path))
         torch.save(
@@ -272,38 +279,6 @@ def test_ppo(args=get_args()):
             }, ckpt_path
         )
         return ckpt_path
-
-    # watch agent's performance
-    def watch():
-        print("Setup test envs ...")
-        policy.eval()
-        test_envs.seed(args.seed)
-        if args.save_buffer_name:
-            print(f"Generate buffer with size {args.buffer_size}")
-            buffer = VectorReplayBuffer(
-                args.buffer_size,
-                buffer_num=len(test_envs),
-                ignore_obs_next=True,
-                save_only_last_obs=True,
-                stack_num=args.frame_stack
-            )
-            collector = Collector(policy, test_envs, buffer, exploration_noise=True)
-            result = collector.collect(n_step=args.buffer_size)
-            print(f"Save buffer into {args.save_buffer_name}")
-            # Unfortunately, pickle will cause oom with 1M buffer size
-            buffer.save_hdf5(args.save_buffer_name)
-        else:
-            print("Testing agent ...")
-            test_collector.reset()
-            result = test_collector.collect(
-                n_episode=args.test_num, render=args.render
-            )
-        rew = result["rews"].mean()
-        print(f"Mean reward (over {result['n/ep']} episodes): {rew}")
-
-    if args.watch:
-        watch()
-        exit(0)
 
     # test train_collector and start filling replay buffer
     print("Start training ...")
@@ -330,7 +305,6 @@ def test_ppo(args=get_args()):
     )
 
     pprint.pprint(result)
-    watch()
 
 
 if __name__ == "__main__":
