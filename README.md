@@ -231,7 +231,7 @@ end
 
 NOTE: The other functions defined here are explained further in `Integrations/MarioKart-Snes/script.lua`.
 
-## Training Script Setup
+## Training Script
 
 The training script in `PPO_agent.py` has many default arguments set. Ensure that the argument `--custom-integration-path` points to the folder containing custom integrations. Additionally, to change the name of the game being played, use the `--task` argument. By default, this argument is set to `MarioKart-Snes`. Additionally, hyperparameters can be directly configured from the command line. You can also specify which 'scenario' and 'data' file you want the environment to run from using the `--scenario` and `--info` flags respectively.
 
@@ -240,4 +240,8 @@ The training script in `PPO_agent.py` has many default arguments set. Ensure tha
 ```python
 python PPO_agent.py --custom-integration-path Integrations --task MarioKart-Snes
 ```
+
+### Training an actual agent
+
+TODO.
 
