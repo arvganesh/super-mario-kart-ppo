@@ -1,58 +1,107 @@
-time_elapsed = 0
-
-function time_penalty_reward ()
-    time_elapsed = time_elapsed + 1
-    local reward = 0.0
-    -- -- Time penalty for not moving
-    if data.speed >= 50.0 then
-        reward = data.speed
-    else
-        reward = (data.speed - 50.0) * -1
-    end
-
-    -- -- off-road penalty
-    if data.surface ~= 64 then
-        reward = -1000.0
-    end
-
-    return reward + -0.01 * time_elapsed
+-- Helper functions to extract information from the game state
+function getLap()
+	-- 133 final, starts at 127
+	return data.laps - 128
 end
 
-function basic_clipped_reward ()
-    -- Off-road or Collision
-    if data.surface ~= 64 or data.collision ~= 0 or data.backward == 0x10 or data.speed == 0.0 then
-        return -1.0
-    end
-
-    -- Ensures speed > 0 reward get's a positive reward
-    return 1.0
+function getCheckpoint()
+	local checkpoint = data.checkpoint
+	local num_checkpoints = data.num_checkpoints
+	local lap = getLap()
+	return checkpoint + lap * num_checkpoints
 end
 
-function log_speed_reward_normalized ()
-    -- Off-road or Collision
-    if data.surface ~= 64 or data.collision ~= 0 or data.backward == 0x10 or data.speed == 0 then
-        return -1.0
+-- Functions that calculate reward terms --
+
+-- Return 1 if agent hits a wall >= 7 times within 10 seconds, else 0.
+wallHits = 0 
+wallTimer = 0
+earlyStop = false 
+function wall_reward() 
+	wallTimer = wallTimer + 1
+	local scale_factor = 0
+
+    -- Record a collision
+    if data.collision ~= 0 and data.speed < 600 then 
+        wallHits = wallHits + 1
+        if wallHits >= 7 then 
+            earlyStop = true
+        end
+        scale_factor = 1
     end
 
-    -- Ensures speed of 0 gets 0 reward and increases monotonically
-    return (math.log(data.speed / 900.0 + 0.001) - math.log(0.001)) / (math.log(1.001) - math.log(0.001))
+    -- Reset timer after 600 frames (10.0 seconds)
+	if wallTimer > 600 then 
+		wallTimer = 0
+		wallHits = 0
+	end
+
+	return scale_factor
 end
 
--- function log_speed_reward ()
---     -- Off-road or Collision
---     if data.surface ~= 64 or data.collision ~= 0 or data.backward == 0x10 then
---         return -1.0
---     end
---     -- Ensures speed of 0 gets 0 reward and increases monotonically
---     return math.log(data.speed + 0.001) - math.log(0.001)
--- end
+-- Returns 1 if the agent passes a checkpoint, else 0.
+prev_checkpoint = -1
+function checkpoint_reward()
+    local current_cp = getCheckpoint()
+    local scale_factor = 0.0
 
--- function simple_clipped_reward ()
---     -- Off-road or Collision
---     if data.surface ~= 64 or data.collision ~= 0 or data.backward == 0x10 or data.speed == 0 then
---         return -1.0
---     end
+    -- Reward if we increased checkpoints
+    if current_cp > prev_checkpoint then
+        prev_checkpoint = current_cp
+        scale_factor = 1.0
+    end
 
---     -- Ensures speed of 0 gets 0 reward and increases monotonically
---     return return 1.0
--- end
+    return scale_factor
+end
+
+-- Returns 1 if the agent is off-road every 30 frames, else 0.
+function terrain_reward()
+    local scale_factor = 0.0
+    if data.surface ~= 64 and data.current_frame % 30 == 0 and data.current_frame ~= 0 then
+        scale_factor = 1.0
+    end
+    return scale_factor
+end
+
+-- Returns 1 or 0.5 depending on the agent's speed, else 0.
+function time_reward()
+    local scale_factor = 0.0
+    if data.current_frame % 30 == 0 and data.current_frame ~= 0 then
+        scale_factor = 1.0
+        if data.speed > 700.0 then
+            scale_factor = 0.5
+        end
+    end
+    return scale_factor
+end
+
+-- Returns 1.0 if the agent is going backwards, else 0.
+function backwards_reward()
+    local scale_factor = 0.0
+    if data.backward == 0x10 and data.current_frame % 6 == 0 then
+        scale_factor = 1.0
+    end
+    return scale_factor
+end
+
+-- Done Conditions --
+function isDoneTrain()
+    if getLap() >= 5 or earlyStop then
+        return true
+    end
+    return false
+end
+
+function overall_reward()
+    local wall_cf = -10.0
+    local checkpoint_cf = 300.0
+    local terrain_cf = -15.0
+    local time_cf = -1.0
+    local backwards_cf = -2.0
+    local reward = 0
+    if not isDoneTrain() then
+        reward = wall_cf * wall_reward() + checkpoint_cf * checkpoint_reward() + terrain_cf * terrain_reward() + time_cf * time_reward() + backwards_cf * backwards_reward()
+        return reward
+    end
+    return reward
+end

@@ -1,15 +1,9 @@
 {
     "done": {
-      "condition": "all",
-      "variables": {
-        "laps": {
-          "op": "equal",
-          "reference": 133
-        }
-      }
+      "script": "lua:isDoneTrain"
     },
-    "reward": {
-      "script": "lua:basic_clipped_reward"
+    "reward":{
+      "script": "lua:overall_reward"
     },
     "scripts": [
       "script.lua"

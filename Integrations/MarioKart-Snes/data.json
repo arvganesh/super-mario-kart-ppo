@@ -19,6 +19,18 @@
     "backward": {
       "address": 267,
       "type": "|u1"
+    },
+    "checkpoint": {
+      "address": 8261824,
+      "type": "|u1"
+    },
+    "num_checkpoints": {
+      "address": 8257864,
+      "type": "|u1"
+    },
+    "current_frame": {
+      "address": 8257592,
+      "type": "<u2"
     }
   }
 }
