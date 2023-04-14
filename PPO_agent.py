@@ -241,7 +241,7 @@ def test_ppo(args=get_args()):
         if args.logger == "wandb":
 
             logger = WandbLogger(
-                save_interval=5,
+                save_interval=2,
                 name=log_name.replace(os.path.sep, "__"),
                 run_id=args.resume_id,
                 config=args,

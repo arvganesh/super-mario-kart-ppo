@@ -23,6 +23,10 @@ function wall_reward()
 
     -- Record a collision
     if data.collision ~= 0 and data.speed < 600 then 
+        -- If we haven't recorded any hits yet, reset the timer
+        if wallHits == 0 then 
+            wallTimer = 0
+        end
         wallHits = wallHits + 1
         if wallHits >= 7 then 
             earlyStop = true
@@ -93,15 +97,20 @@ function isDoneTrain()
 end
 
 function overall_reward()
-    local wall_cf = -10.0
-    local checkpoint_cf = 300.0
-    local terrain_cf = -15.0
-    local time_cf = -1.0
-    local backwards_cf = -2.0
-    local reward = 0
-    if not isDoneTrain() then
-        reward = wall_cf * wall_reward() + checkpoint_cf * checkpoint_reward() + terrain_cf * terrain_reward() + time_cf * time_reward() + backwards_cf * backwards_reward()
-        return reward
+    local wall_cf = -0.01
+    local checkpoint_cf = 3.0
+    local terrain_cf = -0.15
+    local time_cf = -0.01
+    local backwards_cf = -0.02
+    local reward = wall_cf * wall_reward() + checkpoint_cf * checkpoint_reward() + terrain_cf * terrain_reward() + time_cf * time_reward() + backwards_cf * backwards_reward()
+    
+    if earlyStop then
+        reward = -3.0
     end
+
+    if getLap() >= 5 then
+        reward = 10.0
+    end
+
     return reward
 end
