@@ -105,7 +105,7 @@ function overall_reward()
     local reward = wall_cf * wall_reward() + checkpoint_cf * checkpoint_reward() + terrain_cf * terrain_reward() + time_cf * time_reward() + backwards_cf * backwards_reward()
     
     if earlyStop then
-        reward = -3.0
+        reward = -10.0
     end
 
     if getLap() >= 5 then

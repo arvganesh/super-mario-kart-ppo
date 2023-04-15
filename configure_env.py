@@ -152,7 +152,7 @@ def create_wrapped_env(env_id,
     env = retro.make(env_id, inttype=retro.data.Integrations.ALL, render_mode="rgb_array", scenario=scenario, info=info)
 
     # Clip Rewards
-    env = gym.wrappers.TransformReward(env, lambda x: np.sign(x))
+    # env = gym.wrappers.TransformReward(env, lambda x: np.sign(x) / 4.0)
 
     if grayscale:
         env = gym.wrappers.GrayScaleObservation(env)
