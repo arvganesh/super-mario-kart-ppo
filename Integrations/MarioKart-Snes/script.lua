@@ -35,7 +35,7 @@ function wall_reward()
     end
 
     -- Reset timer after 600 frames (10.0 seconds)
-	if wallTimer > 600 then 
+	if wallTimer > 800 then 
 		wallTimer = 0
 		wallHits = 0
 	end
@@ -97,11 +97,11 @@ function isDoneTrain()
 end
 
 function overall_reward()
-    local wall_cf = -0.01
+    local wall_cf = -0.1
     local checkpoint_cf = 3.0
     local terrain_cf = -0.15
-    local time_cf = -0.01
-    local backwards_cf = -0.02
+    local time_cf = -0.02 -- every 1/2th of a second => 2 x per second
+    local backwards_cf = -0.02 -- every 1/10th of a second => 10 x per second
     local reward = wall_cf * wall_reward() + checkpoint_cf * checkpoint_reward() + terrain_cf * terrain_reward() + time_cf * time_reward() + backwards_cf * backwards_reward()
     
     if earlyStop then
